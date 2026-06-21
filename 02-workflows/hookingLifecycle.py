@@ -10,6 +10,7 @@ fact_chain = prompt | model | StrOutputParser()
 def my_listener_on_start(run: Run):
     """""Listener function to be called when a chain run starts"""
     print(f"Run started with ID: {run.id} and name: {run.name}")
+    print("trace_id", run.trace_id)
     print(f"Input to the run: {run.inputs}")
     print(f"Run started at: {run.start_time}")
     print("parent run id: ", run.parent_run_id )
@@ -26,7 +27,7 @@ def my_listener_on_end(run: Run):
     print("metadata: ", run.extra.get("metadata", {}))
 
 fact_chain_listner = fact_chain.with_listeners(on_start=my_listener_on_start,
-                                                on_end=my_listener_on_end)    
+                                                on_end=my_listener_on_end,)    
 # model.add_listener("start", my_listener_on_start)
 # model.add_listener("end", my_listener_on_end)
 response = fact_chain_listner.invoke({"topic": "space"})
