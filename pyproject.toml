@@ -20,6 +20,7 @@ dependencies = [
     "httpx==0.28.1",
     "httpx-sse==0.4.3",
     "idna==3.18",
+    "ipython>=9.14.1",
     "jiter==0.15.0",
     "jsonpatch==1.33",
     "jsonpointer==3.1.1",
