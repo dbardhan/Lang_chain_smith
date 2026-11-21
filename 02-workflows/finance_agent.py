@@ -1,22 +1,26 @@
-from multiprocessing import get_context
-from urllib import response
-
-from langchain.agents import create_agent
-from langchain.tools import tool,ToolRuntime
+import logging
 from dataclasses import dataclass
-from dotenv import load_dotenv
 from typing import Literal
+
+from dotenv import load_dotenv
+from langchain.agents import create_agent
+from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
+
 load_dotenv()  # Load environment variables from .env file
-from langchain.chat_models import init_chat_model
-from langchain.agents.middleware import (wrap_model_call
-                                         ,wrap_tool_call
-                                         ,dynamic_prompt
-                                         ,ModelRequest
-                                         ,ModelResponse)
-from langchain_core.messages import ToolMessage
-from langchain.tools.tool_node import ToolCallRequest
+from langchain.agents.middleware import (
+    ModelRequest,
+    ModelResponse,
+    dynamic_prompt,
+    wrap_model_call,
+    wrap_tool_call,
+)
 from langchain.agents.structured_output import ToolStrategy
+from langchain.chat_models import init_chat_model
+from langchain.tools.tool_node import ToolCallRequest
+from langchain_core.messages import ToolMessage
+
+logger = logging.getLogger(__name__)
 
 USER_DATABASE = {
     "user_001": {
@@ -95,30 +99,30 @@ def gracefull_error_handling(request: ToolCallRequest, handler) -> ToolMessage:
     tool_name = request.tool.name
 
     try:
-        return handler(request) 
+        return handler(request)
     except ValueError as e:
-        msg = f"Error in tool '{tool_name}': {str(e)}"
-        print (f"[ERROR] Caught Value exception in {tool_name}: {str(e)}")  # Log the error for debugging 
+        msg = f"Error in tool '{tool_name}': {e!s}"
+        print (f"[ERROR] Caught Value exception in {tool_name}: {e!s}")  # Log the error for debugging
         return ToolMessage(tool_call_id=request.tool_call.get("id")
                            #,tool_call_name=tool_name
                            , content=msg)
     except KeyError as e:
-        msg = f"Error in tool '{tool_name}': {str(e)}"
-        print (f"[ERROR] Caught KeyError exception in {tool_name}: {str(e)}")  # Log the error for debugging
+        msg = f"Error in tool '{tool_name}': {e!s}"
+        print (f"[ERROR] Caught KeyError exception in {tool_name}: {e!s}")  # Log the error for debugging
         return ToolMessage(tool_call_id=request.tool_call.get("id")
                            ,tool_call_name=tool_name
                            , content=msg)
-    except Exception as e:  
+    except Exception:
         user_context: UserContext = request.runtime.context
         error_message = f"Oops! Something went wrong while processing your request, {user_context.name}. Please try again later."
-        print(f"Error for user {user_context.name}: {str(e)}")  # Log the error for debugging
+        logger.exception("Error for user %s", user_context.name)
         return ToolMessage(tool_call_id=request.tool.lc_id
                            ,tool_call_name=tool_name
                            ,content=error_message)
 
 @wrap_model_call
 def select_model_based_on_membership(request: ModelRequest,handler) -> ModelResponse:
-    """ 
+    """
         Selects model based on user's membership tier
     """
 
@@ -153,7 +157,7 @@ def tier_based_system_prompt(request: ModelRequest) -> str:
             - View recent transactions
             - Calculate budget recommendations
             - Provide personalized greetings"""
-		
+
     if tier == "premium":
         return base_prompt + """
 
@@ -206,11 +210,11 @@ class FinancialResponse(BaseModel):
         description="Confidence level in the advice provided"
     )
 
-    
-@tool 
-def transfer_money(runtime: ToolRuntime[UserContext], 
-                  from_account: str, 
-                  to_account: str, 
+
+@tool
+def transfer_money(runtime: ToolRuntime[UserContext],
+                  from_account: str,
+                  to_account: str,
                   amount: float) -> str:
     """
     Transfers money between two accounts for the user.
@@ -225,12 +229,12 @@ def transfer_money(runtime: ToolRuntime[UserContext],
     currency = user_context.preferred_currency
 
     user_data = USER_DATABASE.get(user_id)
-    
+
     if not user_data:
         raise ValueError(f"User ID {user_id} not found.")
-    
+
     accounts = user_data.get("accounts", {})
-    
+
     if from_account.lower() not in accounts :
         raise ValueError(f"From account '{from_account}' not found for user {user_context.name}.")
     if to_account.lower() not in accounts:
@@ -238,7 +242,7 @@ def transfer_money(runtime: ToolRuntime[UserContext],
 
     if accounts[from_account.lower()] < amount:
         raise ValueError(f"Insufficient funds in {from_account} account for user {user_context.name}.")
-    
+
     # Perform the transfer
     accounts[from_account.lower()] -= amount
     accounts[to_account.lower()] += amount
@@ -257,20 +261,20 @@ def get_account_balance(runtime: ToolRuntime[UserContext]
     user_id = user_context.user_id
     currency = user_context.preferred_currency
 
-    
+
     user_data = USER_DATABASE.get(user_id)
-    
+
     if not user_data:
         raise ValueError(f"User ID {user_id} not found.")
-    
+
     accounts = user_data.get("accounts", {})
     balance = accounts.get(account_type.lower())
-    
+
     if balance is None:
         raise ValueError(f"Account type '{account_type}' not found for user {user_context.name}.")
     else:
         if currency != "USD":
-            balance =  balance * 1.1  # Example conversion rate for demonstration purposes       
+            balance =  balance * 1.1  # Example conversion rate for demonstration purposes
     return f"Your {account_type} account balance is {balance:.2f} {currency}."
 @tool
 def get_recent_transactions(runtime: ToolRuntime[UserContext]
@@ -287,23 +291,23 @@ def get_recent_transactions(runtime: ToolRuntime[UserContext]
     user_id = user_context.user_id
     currency = user_context.preferred_currency
     user_data = USER_DATABASE.get(user_id)
-    
+
     if not user_data:
         raise ValueError(f"User ID {user_id} not found.")
-    
+
     transactions = user_data.get("transactions", {}).get(
         account_type.lower())
-    
+
     if transactions is None:
         raise ValueError(f"Account type '{account_type}' not found for user {user_context.name}.")
-    
+
     recent_transactions = transactions[:limit]
-    
+
     transaction_list = "\n".join(
         [f"{t['date']}: {t['description']} - {t['amount']:.2f} {currency}" for t in recent_transactions]
     )
-    
-    return f"Here are your recent transactions for your {account_type} account:\n{transaction_list}"    
+
+    return f"Here are your recent transactions for your {account_type} account:\n{transaction_list}"
 @tool
 def calculate_budget(runtime: ToolRuntime[UserContext]
                      , month: str) -> str:
@@ -318,30 +322,30 @@ def calculate_budget(runtime: ToolRuntime[UserContext]
     currency = user_context.preferred_currency
 
     user_data = USER_DATABASE.get(user_id)
-    
+
     if not user_data:
         raise ValueError(f"User ID {user_id} not found.")
-    
+
     transactions = []
     for account_transactions in user_data.get("transactions", {}).values():
         transactions.extend(account_transactions)
-    
+
     # Filter transactions for the specified month
     monthly_transactions = [
         t for t in transactions if t["date"].startswith(month.split()[0][:3])
     ]
-    
+
     total_income = sum(t["amount"] for t in monthly_transactions if t["amount"] > 0)
     total_expenses = sum(t["amount"] for t in monthly_transactions if t["amount"] < 0)
-    
+
     budget_summary = (
         f"Budget Summary for {month}:\n"
         f"Total Income: {total_income:.2f} {currency}\n"
         f"Total Expenses: {total_expenses:.2f} {currency}\n"
         f"Net Savings: {(total_income + total_expenses):.2f} {currency}"
     )
-    
-    return budget_summary   
+
+    return budget_summary
 
 @tool
 def get_personalize_greetings(runtime: ToolRuntime[UserContext]) -> str:
@@ -357,7 +361,7 @@ def get_personalize_greetings(runtime: ToolRuntime[UserContext]) -> str:
         "premium": f"Hi {name}! Great to see you again. As a premium member, you have access to advanced financial insights and personalized recommendations to optimize your finances.",
         "vip": f"Welcome {name}! It's wonderful to have you here. As a VIP member, you enjoy exclusive financial services and tailored advice to help you achieve your financial goals with ease.",
     }
-    
+
     return greetings.get(membership_tier.lower(), f"Hello {name}! Welcome back to your finance dashboard.")
 
 
@@ -372,7 +376,7 @@ Your capabilities:
 
 Guidelines:
 - Be helpful and informative
-- Always start by greeting the user 
+- Always start by greeting the user
 - Provide clear, actionable advice
 - Use tools to get accurate, user-specific information
 - Format monetary values clearly
@@ -383,8 +387,8 @@ agent = create_agent(
 
     model=basic_model,
     tools=[get_account_balance,
-           get_recent_transactions, 
-           calculate_budget, 
+           get_recent_transactions,
+           calculate_budget,
            get_personalize_greetings,
            transfer_money],
 
@@ -394,11 +398,11 @@ agent = create_agent(
         tier_based_system_prompt,
         gracefull_error_handling,
     ],
-    
+
     #system_prompt=SYSTEM_PROMPT,
     context_schema=UserContext,
     response_format=ToolStrategy(FinancialResponse),
-    
+
 )
 if __name__ == "__main__":
     def main():
@@ -408,19 +412,20 @@ if __name__ == "__main__":
             membership_tier="vip",
             preferred_currency="USD"
         )
-        bob_context = UserContext(
-            user_id="user_002",
-            name="Bob Smith",
-            membership_tier="basic",
-            preferred_currency="EUR"
-        )
+        # Uncomment this context to run the Bob examples below.
+        # bob_context = UserContext(
+        #     user_id="user_002",
+        #     name="Bob Smith",
+        #     membership_tier="basic",
+        #     preferred_currency="EUR"
+        # )
         # # Test 1: Personalized greeting for bob
         """
         print("\n👥 Personalized greeting for Bob")
         message = "What is my checking account balance?"
         response = agent.invoke({"message": [{"role": "user", "content": message}]},
                                 context= bob_context)
-        
+
         print(f"🤖 Response: {response['messages'][-1].content}")
         """
 
@@ -433,7 +438,7 @@ if __name__ == "__main__":
             {"messages": [{"role": "user", "content": financial_situation_query}]},
             context=alice_context
         )
-        print(f" 🤖 Agent: {response['messages'][-1].content}") 
+        print(f" 🤖 Agent: {response['messages'][-1].content}")
         """
         # Test 6: Error handling - insufficient funds
         """
@@ -443,9 +448,9 @@ if __name__ == "__main__":
         response = agent.invoke(
             {"messages": [{"role": "user", "content": insufficient_amount_prompt}]},
             context=alice_context)
-        print(f"🤖 Agent: {response['messages'][-1].content}") 
+        print(f"🤖 Agent: {response['messages'][-1].content}")
         """
-        
+
         # Test 7: Error handling - same account
         """
         print("\n📝 Query: 'Transfer $100 from checking to checking' (should fail)")
@@ -454,7 +459,7 @@ if __name__ == "__main__":
             {"messages": [{"role": "user", "content": "Transfer $100 from checking to checking"}]},
             context=bob_context,
         )
-        print(f"🤖 Agent: {response['messages'][-1].content}") 
+        print(f"🤖 Agent: {response['messages'][-1].content}")
         """
         # Test 8: Structured Response
         query = "What's my financial situation? Check all my accounts and give me advice"
@@ -464,7 +469,7 @@ if __name__ == "__main__":
             {"messages": [{"role": "user", "content": query}]},
             context=alice_context
         )
-        #print(f"🤖 Agent: {response}") 
+        #print(f"🤖 Agent: {response}")
         structures_response : FinancialResponse = response.get("structured_response")
         print("\nSTRUCTURED RESPONSE")
         print(f"\n Summary:\n {structures_response.summary}")

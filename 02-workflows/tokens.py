@@ -1,18 +1,18 @@
 from dotenv import load_dotenv
 from langchain_core.callbacks import BaseCallbackHandler
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
 class TokenCounterCallback(BaseCallbackHandler):
     """Callback handler to track token usage"""
-    
+
     def __init__(self):
         self.total_tokens = 0
         self.prompt_tokens = 0
         self.completion_tokens = 0
-    
+
     def on_llm_end(self, response, **kwargs):
         """Called when LLM run ends"""
         if hasattr(response, 'llm_output') and response.llm_output:
@@ -39,5 +39,3 @@ print(f"Response: {response.content}")
 print(f"Prompt tokens: {token_counter.prompt_tokens}")
 print(f"Completion tokens: {token_counter.completion_tokens}")
 print(f"Total tokens: {token_counter.total_tokens}")
-
-

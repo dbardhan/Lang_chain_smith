@@ -1,6 +1,8 @@
-from langchain_openai import ChatOpenAI
-from langgraph.graph import START, END, StateGraph
 from typing import TypedDict
+
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, START, StateGraph
+
 
 class OverallState(TypedDict):
     topic: str

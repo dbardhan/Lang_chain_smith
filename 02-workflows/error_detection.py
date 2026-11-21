@@ -1,11 +1,13 @@
+import json
+from typing import Any
+
+from dotenv import load_dotenv
 from langchain_core.runnables import RunnableLambda
 from langchain_core.tracers.schemas import Run
-from typing import List, Dict, Any
-import json
-from dotenv import load_dotenv
+
 load_dotenv()
 
-def failing_function(dinput_dict: Dict[str, Any]) -> str:
+def failing_function(dinput_dict: dict[str, Any]) -> str:
     """A function that raises an error for demonstration purposes."""
     topic = dinput_dict.get("topic", "unknown")
     if "error" in topic.lower():
@@ -21,7 +23,7 @@ def failing_function(dinput_dict: Dict[str, Any]) -> str:
         raise ConnectionError("Simulated network error: Unable to connect to the server.")
     else:
         return f"Successfully processed topic: {topic}"
-    
+
 error_ruannable = RunnableLambda(failing_function)
 def error_listener_on_error(run: Run,):
     """Listener function to be called when an error occurs during a run."""
@@ -45,5 +47,5 @@ try :
     # This will raise a ValueError and trigger the error listener
     result = error_ruannable_with_listener.invoke({"topic": "error somewhere here"})
     print(f"Result: {result}")
-except Exception as e:
+except ValueError as e:
     print(f"Caught exception: {e}")

@@ -1,12 +1,14 @@
-from langchain_openai import ChatOpenAI
+from typing import Literal, TypedDict
+
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.graph import StateGraph, START, END
-from typing import TypedDict, List, Literal
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
+
 
 class OptimizationState(TypedDict):
     product_name: str
-    product_features: List[str]
+    product_features: list[str]
     target_audience: str
     current_description: str
     evaluation_result: dict
@@ -14,13 +16,13 @@ class OptimizationState(TypedDict):
     iteration_count: int
     max_iterations: int
     is_approved: bool
-    iteration_history: List[dict] 
+    iteration_history: list[dict]
 
 
 class ProductDescription(BaseModel):
     headline: str = Field(description="Catchy headline (max 10 words)")
     description: str = Field(description="Main product description (100-150 words)")
-    key_benefits: List[str] = Field(description= "3-5 key benefits as bullet points")
+    key_benefits: list[str] = Field(description= "3-5 key benefits as bullet points")
     call_to_action: str = Field(description="Compelling call-to-action")
 
 class Evaluation(BaseModel):
@@ -29,8 +31,8 @@ class Evaluation(BaseModel):
     persuasiveness_score: int = Field(description="Persuasiveness score 1-10", ge=1, le=10)
     audience_fit_score: int = Field(description="Target audience fit 1-10", ge=1, le=10)
     is_approved: bool = Field(description="Whether description meets standards (score >= 8)")
-    strengths: List[str] = Field(description="What works well")
-    weaknesses: List[str] = Field(description="What needs improvement")
+    strengths: list[str] = Field(description="What works well")
+    weaknesses: list[str] = Field(description="What needs improvement")
     specific_feedback: str = Field(description="Detailed, actionable feedback for revision")
 
 llm = ChatOpenAI(model="gpt-4o-mini")
@@ -121,7 +123,7 @@ def generate_description(state: OptimizationState) -> OptimizationState:
 def evaluate_description(state: OptimizationState) -> OptimizationState:
 
     print(f"\n{'='*70}")
-    print(f"🔍 EVALUATOR: Reviewing Description....")
+    print("🔍 EVALUATOR: Reviewing Description....")
     print(f"{'='*70}")
 
     evaluator_llm = gemini_llm.with_structured_output(Evaluation)
@@ -150,10 +152,10 @@ def evaluate_description(state: OptimizationState) -> OptimizationState:
         - Actionable feedback for the next iteration
 
         Be objective and constructive."""
-    
+
     evaluation = evaluator_llm.invoke(prompt)
 
-    print(f"Evaluation Results")
+    print("Evaluation Results")
     print("-" * 70)
 
     print(f"Overall Score: {evaluation.overall_score}/10")
@@ -161,11 +163,11 @@ def evaluate_description(state: OptimizationState) -> OptimizationState:
     print(f"Persuasiveness: {evaluation.persuasiveness_score}/10")
     print(f"Audience Fit: {evaluation.audience_fit_score}/10")
     print(f"STATUS: {'✅ APPROVED' if evaluation.is_approved else '❌ NEEDS REVISION'}")
-    print(f"\nStrengths:")
+    print("\nStrengths:")
     for strength in evaluation.strengths:
         print(f"- {strength}")
 
-    print(f"\nWeaknesses:")
+    print("\nWeaknesses:")
     for weakness in evaluation.weaknesses:
         print(f"- {weakness}")
 
@@ -202,12 +204,12 @@ def should_continue(state: OptimizationState) -> Literal["optimizer", "end"]:
         print("\n✅ SUCCESS: Description Approved!")
 
         return "end"
-    
+
     if state["iteration_count"] > state["max_iterations"]:
         print(f"\n⚠️ MAX ITERATIONS REACHED: Stopping at iteration {state['iteration_count'] - 1}")
 
         return "end"
-    
+
     print(f"\n CONTINUING: Routing back to optimizer for iteration {state['iteration_count']}")
 
     return "optimizer"

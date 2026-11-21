@@ -1,11 +1,11 @@
-from langgraph.graph import StateGraph,START,END    
-from IPython.display import Image, display
-from typing import Annotated,List,TypedDict
-from langgraph.graph import add_messages
+from typing import Annotated, TypedDict
+
+from langgraph.graph import END, START, StateGraph, add_messages
+
 
 #1. Define our state
 class SimpleState(TypedDict):
-    messages: Annotated[List,add_messages]
+    messages: Annotated[list,add_messages]
 #2. Create our nodes (agents)
 my_graph = StateGraph(SimpleState)
 #3. Link nodes with edges

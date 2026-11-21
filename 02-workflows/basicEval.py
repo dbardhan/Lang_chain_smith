@@ -1,9 +1,11 @@
+import time
+
+from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tracers import LangChainTracer
 from langchain_core.tracers.context import tracing_v2_enabled
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-import time
-from dotenv import load_dotenv
+
 load_dotenv()
 
 tracer = LangChainTracer(project_name="llm-evaluator")
@@ -21,8 +23,13 @@ answer_prompt = ChatPromptTemplate.from_messages([
 # Prompt for judging
 judge_prompt = ChatPromptTemplate.from_messages([
     ("system", "You are an impartial evaluator. Compare the model's answer to the golden reference."),
-    ("user", "Question: {question}\nModel Answer: {answer}\nGolden Reference: {expected}\n\n"
-             "Decide if the answer is correct. Respond with 'Correct' or 'Incorrect' and explain briefly.")
+    (
+        "user",
+        (
+            "Question: {question}\nModel Answer: {answer}\nGolden Reference: {expected}\n\n"
+            "Decide if the answer is correct. Respond with 'Correct' or 'Incorrect' and explain briefly."
+        ),
+    ),
 ])
 
 # Chains
@@ -65,4 +72,3 @@ for r in results:
     print(f"Expected: {r['expected']} | Got: {r['answer']}")
     print(f"Latency: {r['latency']}s | Verdict: {r['verdict']}")
     print("-" * 50)
-

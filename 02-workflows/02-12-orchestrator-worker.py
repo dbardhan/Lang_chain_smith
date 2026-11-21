@@ -1,14 +1,16 @@
-from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, START, END
-from langgraph.types import Send
-from typing import TypedDict, List, Annotated
 from operator import add
+from typing import Annotated, TypedDict
+
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
 from pydantic import BaseModel, Field
+
 
 class OverallState(TypedDict):
     research_topic: str
-    sources: List[str]
-    worker_findings: Annotated[List[dict], add]
+    sources: list[str]
+    worker_findings: Annotated[list[dict], add]
     final_report: str
 
 
@@ -19,7 +21,7 @@ class WorkerState(TypedDict):
 
 
 class ResearchPlan(BaseModel):
-    sources: List[str] = Field(
+    sources: list[str] = Field(
         description="List of specific research sources/aspects to investigate",
         max_length=5
     )
@@ -44,7 +46,7 @@ def plan_research(state: OverallState) -> OverallState:
 
     Research Topic: {state['research_topic']}
 
-    CRITICAL INSTRUCTION: Generate between 3-5 specific research sources or aspects to investigate. 
+    CRITICAL INSTRUCTION: Generate between 3-5 specific research sources or aspects to investigate.
     DO NOT generate more than 5 sources.
 
     Each source should be:
@@ -92,17 +94,17 @@ def research_worker(state: WorkerState) -> OverallState:
 
     1. KEY FINDINGS (3-5 specific points)
     - What are the most important discoveries or facts?
-    
+
     2. DATA & STATISTICS
     - Relevant numbers, percentages, or quantitative information
-    
+
     3. INSIGHTS & ANALYSIS
     - What does this information mean?
     - How does it relate to the broader topic?
-    
+
     4. SOURCES & CREDIBILITY
     - Types of sources you would consult (academic, industry, government, etc.)
-    
+
     5. IMPLICATIONS
     - Why does this matter for understanding the overall topic?
 
@@ -138,7 +140,7 @@ def synthesize_report(state: OverallState) -> OverallState:
 
     prompt = f"""You are synthesizing a comprehensive research report on: {state['research_topic']}
 
-    You have received detailed findings from {len(state['worker_findings'])} specialized researchers, 
+    You have received detailed findings from {len(state['worker_findings'])} specialized researchers,
     each investigating a different aspect of this topic.
 
     RESEARCH FINDINGS:
@@ -171,7 +173,7 @@ def synthesize_report(state: OverallState) -> OverallState:
     - Main takeaways
     - Areas for further research
 
-    IMPORTANT: 
+    IMPORTANT:
     - Write this as a unified, flowing report, NOT as separate sections from each researcher
     - Integrate findings naturally across themes
     - Use specific examples and data from the research
@@ -236,6 +238,6 @@ result = graph.invoke({
 })
 
 print("="*70)
-print(f"FINAL SYNTHESIZED RESULT")
+print("FINAL SYNTHESIZED RESULT")
 print("="*70)
 print(result["final_report"])

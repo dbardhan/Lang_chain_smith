@@ -1,9 +1,10 @@
 from dotenv import load_dotenv
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
 from langchain_core.tracers.schemas import Run
-from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
+
 load_dotenv()
 
 prompt = ChatPromptTemplate.from_template("Tell me the fact about the  {topic}")
@@ -23,7 +24,7 @@ chain_with_listener = fact_chain.with_listeners(on_start=my_listener_on_start)
 my_runnable_config = RunnableConfig(
     run_name="fact_chain_run",
     tags=["fact_chain", "example"],
-    metadata={"user_id": "user_123", 
+    metadata={"user_id": "user_123",
     "description": "A chain that provides facts about a given topic.",
     "input_topic_type": "history"}
 )
@@ -38,7 +39,7 @@ def my_listener_on_end(run: Run):
     print("metadata: ", run.extra.get("metadata", {}))
 
 print("-----demo 1----")
-#Demo of setting configuration with each llm call 
+#Demo of setting configuration with each llm call
 result= chain_with_listener.invoke({"topic": "NetaJi Subhash Chandra bose"},
                                     config=my_runnable_config)
 print(f"Fact about NetaJi Subhash Chandra bose: {result}")
@@ -47,7 +48,7 @@ print("demo 2===persistent")
 my_persistent_config = RunnableConfig(
     run_name="fact_chain_run_persistent",
     tags=["fact_chain_persist", "example2"],
-    metadata={"user_id": "user_123", 
+    metadata={"user_id": "user_123",
     "description": "A chain that provides facts about a given topic.",
     "input_topic_type": "space"}
 )

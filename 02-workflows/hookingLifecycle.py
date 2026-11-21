@@ -1,10 +1,11 @@
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain_core.tracers.schemas import Run
-from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tracers.schemas import Run
+from langchain_openai import ChatOpenAI
+
 load_dotenv()
-model = ChatOpenAI(model="gpt-4o-mini", temperature=0)  
+model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 prompt = ChatPromptTemplate.from_template("give me a short ,simple, fact about {topic}")
 fact_chain = prompt | model | StrOutputParser()
 def my_listener_on_start(run: Run):
@@ -27,7 +28,7 @@ def my_listener_on_end(run: Run):
     print("metadata: ", run.extra.get("metadata", {}))
 
 fact_chain_listner = fact_chain.with_listeners(on_start=my_listener_on_start,
-                                                on_end=my_listener_on_end,)    
+                                                on_end=my_listener_on_end,)
 # model.add_listener("start", my_listener_on_start)
 # model.add_listener("end", my_listener_on_end)
 response = fact_chain_listner.invoke({"topic": "space"})

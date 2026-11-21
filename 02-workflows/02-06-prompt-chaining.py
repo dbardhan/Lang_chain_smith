@@ -12,9 +12,11 @@ Steps:
 - Format for publication
 """
 
-from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, START, END
 from typing import TypedDict
+
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, START, StateGraph
+
 
 class ContentState(TypedDict):
     topic: str
@@ -53,7 +55,7 @@ def fact_check(state: ContentState) -> ContentState:
 
     prompt = f"""
     Review the following blog post draft for factual accuracy and consistency:
-    
+
     {state['draft']}
 
     Identify:
@@ -148,4 +150,3 @@ print("\n" + "="*50)
 print("FINAL RESULT")
 print("="*50)
 print(result["final_draft"])
-

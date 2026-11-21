@@ -1,12 +1,14 @@
+from typing import Literal, TypedDict
+
 from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, START, END
-from typing import TypedDict, Literal
+from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
+
 
 class SupportState(TypedDict):
     customer_query: str
     query_category: str
-    response: str 
+    response: str
     tools_used: list[str]
 
 llm = ChatOpenAI(model="gpt-4o")
@@ -24,9 +26,9 @@ def classify_query(state: SupportState) -> SupportState:
     classifier_llm = llm.with_structured_output(QueryClassification)
 
     prompt = f"""Classify the following customer support query into one of these categories:
-    
+
     - billing: Questions about invoices, payments, charges, pricing
-    - technical: Technical issues, bugs, feature problems, integration issues  
+    - technical: Technical issues, bugs, feature problems, integration issues
     - refund: Refund requests, returns, cancellations
     - account: Account access, password reset, profile changes, login issues
     - general: General questions, feature inquiries, information requests
@@ -124,7 +126,7 @@ def handle_refund(state: SupportState) -> SupportState:
 def handle_general(state: SupportState) -> SupportState:
     """Handle general queries"""
     print("ℹ️  GENERAL HANDLER: Processing general inquiry...")
-    
+
     prompt = f"""You are a general support specialist. Handle this customer query:
 
     {state['customer_query']}
@@ -136,11 +138,11 @@ def handle_general(state: SupportState) -> SupportState:
     - Suggests related features they might find useful
 
     Be friendly and informative."""
-    
+
     response = llm.invoke(prompt).content
-    
+
     print("✓ GENERAL HANDLER: Response generated\n")
-    
+
     return {
         "response": response,
         "tools_used": ["knowledge_base", "faq_database"]

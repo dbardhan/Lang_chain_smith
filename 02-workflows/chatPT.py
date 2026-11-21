@@ -1,12 +1,11 @@
 from dotenv import load_dotenv
+
 load_dotenv()
 from langchain_core.prompts import (
     ChatPromptTemplate,
     FewShotChatMessagePromptTemplate,
 )
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI 
-
+from langchain_openai import ChatOpenAI
 
 example_formatter = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
